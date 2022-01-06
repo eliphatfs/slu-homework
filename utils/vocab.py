@@ -79,24 +79,3 @@ class LabelVocab():
     @property
     def num_tags(self):
         return len(self.tag2idx)
-
-
-class DynamicVocab:
-    def __init__(self, limit=512) -> None:
-        self.limit = limit
-        self.tag2idx, self.idx2tag = {}, {}
-        self.learn('O')
-
-    def t2i(self, tag):
-        return self.tag2idx.get(tag, 0)
-
-    def i2t(self, i):
-        return self.idx2tag.get(i, 'O')
-
-    def learn(self, tag):
-        if len(self.tag2idx) >= self.limit:
-            return
-        if tag not in self.tag2idx:
-            idx = len(self.tag2idx)
-            self.tag2idx[tag] = idx
-            self.idx2tag[idx] = tag
