@@ -31,6 +31,15 @@ class SLUTagging(nn.Module):
         return tag_output
 
     def decode(self, label_vocab, batch):
+        projection = self.config.projector.projection
+
+        def _flush_stagine():
+            nonlocal tag_buff, idx_buff
+            slot = '-'.join(tag_buff[0].split('-')[1:])
+            value = ''.join([batch.utt[i][j] for j in idx_buff])
+            idx_buff, tag_buff = [], []
+            pred_tuple.append(f'{slot}-{projection(slot.split("-")[-1], value)}')
+
         batch_size = len(batch)
         labels = batch.labels
         prob, loss = self.forward(batch)
@@ -44,10 +53,7 @@ class SLUTagging(nn.Module):
                 tag = label_vocab.convert_idx_to_tag(tid)
                 pred_tags.append(tag)
                 if (tag == 'O' or tag.startswith('B')) and len(tag_buff) > 0:
-                    slot = '-'.join(tag_buff[0].split('-')[1:])
-                    value = ''.join([batch.utt[i][j] for j in idx_buff])
-                    idx_buff, tag_buff = [], []
-                    pred_tuple.append(f'{slot}-{value}')
+                    _flush_stagine()
                     if tag.startswith('B'):
                         idx_buff.append(idx)
                         tag_buff.append(tag)
@@ -55,9 +61,7 @@ class SLUTagging(nn.Module):
                     idx_buff.append(idx)
                     tag_buff.append(tag)
             if len(tag_buff) > 0:
-                slot = '-'.join(tag_buff[0].split('-')[1:])
-                value = ''.join([batch.utt[i][j] for j in idx_buff])
-                pred_tuple.append(f'{slot}-{value}')
+                _flush_stagine()
             predictions.append(pred_tuple)
         return predictions, labels, loss.cpu().item()
 

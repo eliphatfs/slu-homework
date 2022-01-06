@@ -10,6 +10,7 @@ from utils.initialization import *
 from utils.example import Example
 from utils.batch import from_example_list
 from utils.vocab import PAD
+from utils.projection import OntologyProjection
 from model.slu_baseline_tagging import SLUTagging
 
 # initialization params, output path, logger, random seed and torch.device
@@ -23,6 +24,7 @@ print("Use GPU with index %s" % (args.device) if args.device >= 0 else "Use CPU 
 start_time = time.time()
 train_path = os.path.join(args.dataroot, 'train.json')
 dev_path = os.path.join(args.dataroot, 'development.json')
+projector = OntologyProjection(args.dataroot)
 Example.configuration(args.dataroot, train_path=train_path, word2vec_path=args.word2vec_path)
 train_dataset = Example.load_dataset(train_path, 1)
 dev_dataset = Example.load_dataset(dev_path, 0)
@@ -33,6 +35,7 @@ args.vocab_size = Example.word_vocab.vocab_size
 args.pad_idx = Example.word_vocab[PAD]
 args.num_tags = Example.label_vocab.num_tags
 args.tag_pad_idx = Example.label_vocab.convert_tag_to_idx(PAD)
+args.projector = projector
 
 
 model = SLUTagging(args).to(device)
@@ -59,6 +62,15 @@ def decode(choice):
             pred, label, loss = model.decode(Example.label_vocab, current_batch)
             predictions.extend(pred)
             labels.extend(label)
+            # sorted_samples = sorted(cur_dataset, key=lambda x: len(x.utt), reverse=True)
+            # for P, L, E, U in zip(pred, label, sorted_samples, current_batch.utt):
+            #     if set(P) != set(L):
+            #         print("P", P)
+            #         print("L", L)
+            #         print("UTT", E.ex['asr_1best'])
+            #         print("BUT", U)
+            #         print("MTR", E.ex['manual_transcript'])
+            #         print()
             total_loss += loss
             count += 1
         metrics = Example.evaluator.acc(predictions, labels)
