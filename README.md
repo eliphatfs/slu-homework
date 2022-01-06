@@ -6,9 +6,13 @@
 
 ### 运行
     
-在根目录下运行
+训练：在根目录下运行
 
     python scripts/slu_baseline.py
+    
+测试：在根目录下运行（将会读取`test_unlabelled.json`并在`data`目录下生成`test.json`）环境与原始相同
+
+    python scripts/slu_evaluate.py
 
 ### 代码说明
 

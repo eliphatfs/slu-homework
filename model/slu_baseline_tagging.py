@@ -45,7 +45,12 @@ class SLUTagging(nn.Module):
 
         batch_size = len(batch)
         labels = batch.labels
-        prob, loss = self.forward(batch)
+        result = self.forward(batch)
+        if isinstance(result, tuple):
+            prob, loss = result
+            loss = loss.cpu().item()
+        else:
+            prob, loss = result, None
         predictions = []
         for i in range(batch_size):
             pred = torch.argmax(prob[i], dim=-1).cpu().tolist()
@@ -66,7 +71,7 @@ class SLUTagging(nn.Module):
             if len(tag_buff) > 0:
                 _flush_stagine()
             predictions.append(pred_tuple)
-        return predictions, labels, loss.cpu().item()
+        return predictions, labels, loss
 
 
 class TaggingFNNDecoder(nn.Module):
@@ -79,7 +84,8 @@ class TaggingFNNDecoder(nn.Module):
 
     def forward(self, hiddens, mask, labels=None):
         logits = self.output_layer(hiddens)
-        logits += (1 - mask).unsqueeze(-1).repeat(1, 1, self.num_tags) * -1e32
+        if mask is not None:
+            logits += (1 - mask).unsqueeze(-1).repeat(1, 1, self.num_tags) * -1e32
         prob = torch.softmax(logits, dim=-1)
         if labels is not None:
             loss = self.loss_fct(logits.view(-1, logits.shape[-1]), labels.view(-1))

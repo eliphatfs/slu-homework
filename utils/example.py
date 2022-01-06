@@ -32,10 +32,11 @@ class Example():
 
         self.utt = ex['asr_1best'] if mode == 0 else ex['manual_transcript']
         self.slot = {}
-        for label in ex['semantic']:
-            act_slot = f'{label[0]}-{label[1]}'
-            if len(label) == 3:
-                self.slot[act_slot] = label[2]
+        if 'semantic' in ex:
+            for label in ex['semantic']:
+                act_slot = f'{label[0]}-{label[1]}'
+                if len(label) == 3:
+                    self.slot[act_slot] = label[2]
         self.tags = ['O'] * len(self.utt)
         for slot in self.slot:
             value = self.slot[slot]
