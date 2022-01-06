@@ -48,6 +48,6 @@ class OntologyProjection:
             if kou < mind:
                 mind = kou
                 mini = v
-        if mind >= (len(val) * 0.5, 256):
+        if mind >= (len(val) * 0.495, 256):
             return None
         return mini
