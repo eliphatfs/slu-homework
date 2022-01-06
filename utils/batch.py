@@ -18,8 +18,8 @@ def from_example_list(args, ex_list, device='cpu', train=True):
     if train:
         denoi_ids = [ex.denoi_idx[:max_len] + [pad_idx] * (max_len - len(ex.denoi_idx[:max_len])) for ex in ex_list]
         batch.denoi_ids = torch.tensor(denoi_ids, dtype=torch.long, device=device)
-        denoi_mask = [[1] * len(ex.denoi_idx[:max_len]) + [0] * (max_len - len(ex.denoi_idx[:max_len])) for ex in ex_list]
-        batch.denoi_mask = torch.tensor(denoi_mask, dtype=torch.float, device=device)
+        # denoi_mask = [[1] * len(ex.denoi_idx[:max_len]) + [0] * (max_len - len(ex.denoi_idx[:max_len])) for ex in ex_list]
+        # batch.denoi_mask = torch.tensor(denoi_mask, dtype=torch.float, device=device)
         batch.labels = [ex.slotvalue for ex in ex_list]
         tag_lens = [len(ex.tag_id) for ex in ex_list]
         max_tag_lens = max(tag_lens)

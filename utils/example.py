@@ -42,10 +42,16 @@ class Example():
         self.tags = ['O'] * len(self.utt)
         for slot in self.slot:
             value = self.slot[slot]
-            bidx = self.utt.find(value)
+            bidx = self.mtr.find(value)
             if bidx != -1 and bidx < len(self.utt):
                 self.tags[bidx: bidx + len(value)] = [f'I-{slot}'] * len(value)
                 self.tags[bidx] = f'B-{slot}'
+        if all(x =='O' for x in self.tags) and len(self.slot) == 1:
+            slot = next(iter(self.slot))
+            if len(self.slot[slot]) < len(self.utt):
+                self.mtr = '!' + self.slot[slot]
+                self.tags[0] = f'B-{slot}'
+                self.tags[1: len(self.mtr)] = [f'I-{slot}'] * (len(self.mtr) - 1)
         self.slotvalue = [f'{slot}-{value}' for slot, value in self.slot.items()]
         self.input_idx = [Example.word_vocab[c] for c in self.utt]
         self.denoi_idx = [Example.word_vocab[c] for c in self.mtr]

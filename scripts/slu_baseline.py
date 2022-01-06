@@ -1,7 +1,6 @@
 #coding=utf8
 import sys, os, time, gc
 from torch.optim import Adam
-import torchvision.models.resnet as r
 
 install_path = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(install_path)
