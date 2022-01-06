@@ -38,7 +38,10 @@ class SLUTagging(nn.Module):
             slot = '-'.join(tag_buff[0].split('-')[1:])
             value = ''.join([batch.utt[i][j] for j in idx_buff])
             idx_buff, tag_buff = [], []
-            pred_tuple.append(f'{slot}-{projection(slot.split("-")[-1], value)}')
+            projected = projection(slot.split("-")[-1], value)
+            if projected is None:
+                return
+            pred_tuple.append(f'{slot}-{projected}')
 
         batch_size = len(batch)
         labels = batch.labels

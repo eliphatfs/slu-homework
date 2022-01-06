@@ -41,13 +41,13 @@ class OntologyProjection:
         if val in self.entities[slot] or not val:
             return val
         mini = None
-        mind = 16777215
+        mind = 16777215, 256
         inv_dict = self.invert_docs[slot]
         for v in set.union(*(inv_dict[ch] for ch in val)):
-            kou = levenshteinDistance(v, val)
+            kou = levenshteinDistance(v, val), abs(len(v) - len(val))
             if kou < mind:
                 mind = kou
                 mini = v
-        if mind >= len(val):
-            return val
+        if mind >= (len(val) * 0.5, 256):
+            return None
         return mini
