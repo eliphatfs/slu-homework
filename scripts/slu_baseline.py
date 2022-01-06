@@ -87,8 +87,8 @@ if not args.testing:
             cur_dataset = [train_dataset[k] for k in train_index[j: j + step_size]]
             current_batch = from_example_list(args, cur_dataset, device, train=True)
             (_, loss), (_, loss2) = model(current_batch)
-            epoch_loss += (loss + loss2).item()
-            (loss + loss2).backward()
+            epoch_loss += (loss + loss2 * args.lam).item()
+            (loss + loss2 * args.lam).backward()
             optimizer.step()
             optimizer.zero_grad()
             count += 1

@@ -13,6 +13,7 @@ class SLUTagging(nn.Module):
         self.config = config
         self.cell = config.encoder_cell
         self.word_embed = nn.Embedding(config.vocab_size, config.embed_size, padding_idx=0)
+        self.denoise_rnn = getattr(nn, self.cell)(config.embed_size, config.hidden_size // 2, num_layers=config.num_layer, bidirectional=True, batch_first=True)
         self.rnn = getattr(nn, self.cell)(config.embed_size, config.hidden_size // 2, num_layers=config.num_layer, bidirectional=True, batch_first=True)
         self.dropout_layer = nn.Dropout(p=config.dropout)
         self.denoise_layer = DenoiseFNNDecoder(config.hidden_size, config.embed_size, config.vocab_size, config.tag_pad_idx)
@@ -63,7 +64,7 @@ class SLUTagging(nn.Module):
                 value = ''.join([Example.word_vocab.id2word[denoise[i][j].argmax(-1).item()] for j in idx_buff])
                 pred_tuple.append(f'{slot}-{value}')
             predictions.append(pred_tuple)
-        return predictions, labels, (loss + loss2).item()
+        return predictions, labels, (loss + loss2 * self.config.lam).item()
 
 
 class DenoiseFNNDecoder(nn.Module):
