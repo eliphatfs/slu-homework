@@ -14,20 +14,23 @@ class Example():
         cls.label_vocab = LabelVocab(root)
 
     @classmethod
-    def load_dataset(cls, data_path):
+    def load_dataset(cls, data_path, is_train):
         datas = json.load(open(data_path, 'r', encoding='utf-8'))
         examples = []
         for data in datas:
             for utt in data:
-                ex = cls(utt)
+                ex = cls(utt, 0)
                 examples.append(ex)
+                if is_train:
+                    ex = cls(utt, 1)
+                    examples.append(ex)
         return examples
 
-    def __init__(self, ex: dict):
+    def __init__(self, ex: dict, mode):
         super(Example, self).__init__()
         self.ex = ex
 
-        self.utt = ex['asr_1best']
+        self.utt = ex['asr_1best'] if mode == 0 else ex['manual_transcript']
         self.slot = {}
         for label in ex['semantic']:
             act_slot = f'{label[0]}-{label[1]}'
