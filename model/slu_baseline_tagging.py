@@ -2,48 +2,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.utils.rnn as rnn_utils
-import collections
-
-
-with open("data/lexicon/poi_name.txt", "r", encoding="utf-8") as fi:
-    pois = set([x.strip() for x in fi])
-    poi_invert_dict = collections.defaultdict(set)
-    for poi in pois:
-        for ch in poi:
-            poi_invert_dict[ch].add(poi)
-
-
-def projection(val):
-    if val in pois:
-        return val
-    if not val:
-        return val
-    mini = None
-    mind = 16777215
-    for v in set.union(*(poi_invert_dict[ch] for ch in val)):
-        kou = levenshteinDistance(v, val)
-        if kou < mind:
-            mind = kou
-            mini = v
-    if mind >= len(val):
-        return val
-    return mini
-
-
-def levenshteinDistance(s1, s2):
-    if len(s1) > len(s2):
-        s1, s2 = s2, s1
-
-    distances = range(len(s1) + 1)
-    for i2, c2 in enumerate(s2):
-        distances_ = [i2+1]
-        for i1, c1 in enumerate(s1):
-            if c1 == c2:
-                distances_.append(distances[i1])
-            else:
-                distances_.append(1 + min((distances[i1], distances[i1 + 1], distances_[-1])))
-        distances = distances_
-    return distances[-1]
 
 
 class SLUTagging(nn.Module):
@@ -89,7 +47,7 @@ class SLUTagging(nn.Module):
                     slot = '-'.join(tag_buff[0].split('-')[1:])
                     value = ''.join([batch.utt[i][j] for j in idx_buff])
                     idx_buff, tag_buff = [], []
-                    pred_tuple.append(f'{slot}-{projection(value)}')
+                    pred_tuple.append(f'{slot}-{value}')
                     if tag.startswith('B'):
                         idx_buff.append(idx)
                         tag_buff.append(tag)
@@ -99,7 +57,7 @@ class SLUTagging(nn.Module):
             if len(tag_buff) > 0:
                 slot = '-'.join(tag_buff[0].split('-')[1:])
                 value = ''.join([batch.utt[i][j] for j in idx_buff])
-                pred_tuple.append(f'{slot}-{projection(value)}')
+                pred_tuple.append(f'{slot}-{value}')
             predictions.append(pred_tuple)
         return predictions, labels, loss.cpu().item()
 
