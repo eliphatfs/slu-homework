@@ -95,7 +95,8 @@ if not args.testing:
         for j in range(0, nsamples, step_size):
             cur_dataset = [train_dataset[k] for k in train_index[j: j + step_size]]
             current_batch = from_example_list(args, cur_dataset, device, train=True)
-            output, loss = model(current_batch)
+            (_, exloss), (output, loss) = model(current_batch)
+            loss = exloss + loss
             epoch_loss += loss.item()
             loss.backward()
             optimizer.step()

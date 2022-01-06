@@ -1,3 +1,4 @@
 __pycache__
 model.bin
 data
+*.log

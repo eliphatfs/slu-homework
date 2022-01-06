@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.utils.rnn as rnn_utils
+from utils.example import Example
 
 
 class SLUTagging(nn.Module):
@@ -14,6 +15,7 @@ class SLUTagging(nn.Module):
         self.rnn = getattr(nn, self.cell)(config.embed_size, config.hidden_size // 2, num_layers=config.num_layer, bidirectional=True, batch_first=True)
         self.dropout_layer = nn.Dropout(p=config.dropout)
         self.output_layer = TaggingFNNDecoder(config.hidden_size, config.num_tags, config.tag_pad_idx)
+        self.extra_tagging = ExtraTagDecoder(config.hidden_size, 512)
 
     def forward(self, batch):
         tag_ids = batch.tag_ids
@@ -26,9 +28,10 @@ class SLUTagging(nn.Module):
         packed_rnn_out, h_t_c_t = self.rnn(packed_inputs)  # bsize x seqlen x dim
         rnn_out, unpacked_len = rnn_utils.pad_packed_sequence(packed_rnn_out, batch_first=True)
         hiddens = self.dropout_layer(rnn_out)
+        extra_tag = self.extra_tagging(hiddens, tag_mask, batch.extra_tags)
         tag_output = self.output_layer(hiddens, tag_mask, tag_ids)
 
-        return tag_output
+        return extra_tag, tag_output
 
     def decode(self, label_vocab, batch):
         projection = self.config.projector.projection
@@ -45,9 +48,14 @@ class SLUTagging(nn.Module):
 
         batch_size = len(batch)
         labels = batch.labels
-        prob, loss = self.forward(batch)
+        (exprob, exloss), (prob, loss) = self.forward(batch)
         predictions = []
         for i in range(batch_size):
+            glob_extra = torch.argmax(exprob[i], dim=-1).item()
+            extra_tag = Example.extra_dtvocab.i2t(glob_extra)
+            if extra_tag != 'O':
+                predictions.append(extra_tag)
+                continue
             pred = torch.argmax(prob[i], dim=-1).cpu().tolist()
             pred_tuple = []
             idx_buff, tag_buff, pred_tags = [], [], []
@@ -66,7 +74,7 @@ class SLUTagging(nn.Module):
             if len(tag_buff) > 0:
                 _flush_stagine()
             predictions.append(pred_tuple)
-        return predictions, labels, loss.cpu().item()
+        return predictions, labels, (exloss + loss).cpu().item()
 
 
 class TaggingFNNDecoder(nn.Module):
@@ -80,6 +88,23 @@ class TaggingFNNDecoder(nn.Module):
     def forward(self, hiddens, mask, labels=None):
         logits = self.output_layer(hiddens)
         logits += (1 - mask).unsqueeze(-1).repeat(1, 1, self.num_tags) * -1e32
+        prob = torch.softmax(logits, dim=-1)
+        if labels is not None:
+            loss = self.loss_fct(logits.view(-1, logits.shape[-1]), labels.view(-1))
+            return prob, loss
+        return prob
+
+
+class ExtraTagDecoder(nn.Module):
+
+    def __init__(self, input_size, max_extag):
+        super().__init__()
+        self.num_tags = max_extag
+        self.output_layer = nn.Linear(input_size, max_extag)
+        self.loss_fct = nn.CrossEntropyLoss()
+
+    def forward(self, hiddens, mask, labels=None):
+        logits = self.output_layer(hiddens * mask.unsqueeze(-1)).max(-2)[0]
         prob = torch.softmax(logits, dim=-1)
         if labels is not None:
             loss = self.loss_fct(logits.view(-1, logits.shape[-1]), labels.view(-1))
