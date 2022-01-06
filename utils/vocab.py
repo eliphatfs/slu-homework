@@ -8,7 +8,7 @@ EOS = '</s>'
 
 class Vocab():
 
-    def __init__(self, padding=False, unk=False, min_freq=1, filepath=None):
+    def __init__(self, padding=False, unk=False, min_freq=1, filepath=None, word2vec=None):
         super(Vocab, self).__init__()
         self.word2id = dict()
         self.id2word = dict()
@@ -21,6 +21,12 @@ class Vocab():
 
         if filepath is not None:
             self.from_train(filepath, min_freq=min_freq)
+        if word2vec:
+            for word in word2vec:
+                if word not in self.word2id:
+                    wid = len(self.word2id)
+                    self.word2id[word] = wid
+                    self.id2word[wid] = word
 
     def from_train(self, filepath, min_freq=1):
         with open(filepath, 'r', encoding='utf-8') as f:

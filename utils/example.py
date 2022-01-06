@@ -9,8 +9,8 @@ class Example():
     @classmethod
     def configuration(cls, root, train_path=None, word2vec_path=None):
         cls.evaluator = Evaluator()
-        cls.word_vocab = Vocab(padding=True, unk=True, filepath=train_path)
         cls.word2vec = Word2vecUtils(word2vec_path)
+        cls.word_vocab = Vocab(padding=True, unk=True, filepath=train_path, word2vec=cls.word2vec.word2vec)
         cls.label_vocab = LabelVocab(root)
 
     @classmethod
@@ -42,7 +42,7 @@ class Example():
         self.tags = ['O'] * len(self.utt)
         for slot in self.slot:
             value = self.slot[slot]
-            bidx = self.mtr.find(value)
+            bidx = self.utt.find(value)
             if bidx != -1 and bidx < len(self.utt):
                 self.tags[bidx: bidx + len(value)] = [f'I-{slot}'] * len(value)
                 self.tags[bidx] = f'B-{slot}'
