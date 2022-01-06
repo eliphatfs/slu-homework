@@ -9,8 +9,8 @@ class Example():
     @classmethod
     def configuration(cls, root, train_path=None, word2vec_path=None):
         cls.evaluator = Evaluator()
+        cls.word_vocab = Vocab(padding=True, unk=True, filepath=train_path)
         cls.word2vec = Word2vecUtils(word2vec_path)
-        cls.word_vocab = Vocab(padding=True, unk=True, filepath=train_path, word2vec=cls.word2vec.word2vec)
         cls.label_vocab = LabelVocab(root)
 
     @classmethod
@@ -28,12 +28,6 @@ class Example():
         self.ex = ex
 
         self.utt = ex['asr_1best']
-        self.mtr = ex['manual_transcript']\
-            .replace("(unknown)", "")\
-            .replace("(robot)", "")\
-            .replace("(dialect)", "")\
-            .replace("(noise)", "")\
-            .replace("(side)", "")[:len(self.utt)]
         self.slot = {}
         for label in ex['semantic']:
             act_slot = f'{label[0]}-{label[1]}'
@@ -42,18 +36,11 @@ class Example():
         self.tags = ['O'] * len(self.utt)
         for slot in self.slot:
             value = self.slot[slot]
-            bidx = self.mtr.find(value)
-            if bidx != -1 and bidx < len(self.utt):
+            bidx = self.utt.find(value)
+            if bidx != -1:
                 self.tags[bidx: bidx + len(value)] = [f'I-{slot}'] * len(value)
                 self.tags[bidx] = f'B-{slot}'
-        if all(x =='O' for x in self.tags) and len(self.slot) == 1:
-            slot = next(iter(self.slot))
-            if len(self.slot[slot]) < len(self.utt):
-                self.mtr = '!' + self.slot[slot]
-                self.tags[0] = f'B-{slot}'
-                self.tags[1: len(self.mtr)] = [f'I-{slot}'] * (len(self.mtr) - 1)
         self.slotvalue = [f'{slot}-{value}' for slot, value in self.slot.items()]
         self.input_idx = [Example.word_vocab[c] for c in self.utt]
-        self.denoi_idx = [Example.word_vocab[c] for c in self.mtr]
         l = Example.label_vocab
         self.tag_id = [l.convert_tag_to_idx(tag) for tag in self.tags]

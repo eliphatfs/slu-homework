@@ -37,8 +37,6 @@ args.tag_pad_idx = Example.label_vocab.convert_tag_to_idx(PAD)
 
 model = SLUTagging(args).to(device)
 Example.word2vec.load_embeddings(model.word_embed, Example.word_vocab, device=device)
-with torch.no_grad():
-    model.denoise_layer.output_layer.weight.set_(model.word_embed.weight)
 
 
 def set_optimizer(model, args):
@@ -85,9 +83,9 @@ if not args.testing:
         for j in range(0, nsamples, step_size):
             cur_dataset = [train_dataset[k] for k in train_index[j: j + step_size]]
             current_batch = from_example_list(args, cur_dataset, device, train=True)
-            (_, loss), (_, loss2) = model(current_batch)
-            epoch_loss += (loss + loss2 * args.lam).item()
-            (loss + loss2 * args.lam).backward()
+            output, loss = model(current_batch)
+            epoch_loss += loss.item()
+            loss.backward()
             optimizer.step()
             optimizer.zero_grad()
             count += 1
