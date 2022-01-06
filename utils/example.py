@@ -28,6 +28,12 @@ class Example():
         self.ex = ex
 
         self.utt = ex['asr_1best']
+        self.mtr = ex['manual_transcript']\
+            .replace("(unknown)", "")\
+            .replace("(robot)", "")\
+            .replace("(dialect)", "")\
+            .replace("(noise)", "")\
+            .replace("(side)", "")[:len(self.utt)]
         self.slot = {}
         for label in ex['semantic']:
             act_slot = f'{label[0]}-{label[1]}'
@@ -36,11 +42,12 @@ class Example():
         self.tags = ['O'] * len(self.utt)
         for slot in self.slot:
             value = self.slot[slot]
-            bidx = self.utt.find(value)
-            if bidx != -1:
+            bidx = self.mtr.find(value)
+            if bidx != -1 and bidx < len(self.utt):
                 self.tags[bidx: bidx + len(value)] = [f'I-{slot}'] * len(value)
                 self.tags[bidx] = f'B-{slot}'
         self.slotvalue = [f'{slot}-{value}' for slot, value in self.slot.items()]
         self.input_idx = [Example.word_vocab[c] for c in self.utt]
+        self.denoi_idx = [Example.word_vocab[c] for c in self.mtr]
         l = Example.label_vocab
         self.tag_id = [l.convert_tag_to_idx(tag) for tag in self.tags]
